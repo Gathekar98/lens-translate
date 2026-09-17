@@ -1,8 +1,9 @@
 import { useState } from "react";
 import "./App.css";
+import Home from "./components/Home";
 
 type Stage = "home" | "capturing" | "processing" | "result";
-type OutputMode = "speak" | "text";
+export type OutputMode = "speak" | "text";
 
 function App() {
   const [stage, setStage] = useState<Stage>("home");
@@ -11,7 +12,15 @@ function App() {
 
   return (
     <div className="app">
-      {stage === "home" && <div>HOME SCREEN (placeholder)</div>}
+      {stage === "home" && 
+        <Home 
+          targetLanguage={targetLanguage}
+          setTargetLanguage={setTargetLanguage}
+          outputMode={outputMode}
+          setOutputMode={setOutputMode}
+          onScan={()=>setStage("capturing")}
+        />
+      }
       {stage === "capturing" && <div>CAPTURING (placeholder)</div>}
       {stage === "processing" && <div>PROCESSING (placeholder)</div>}
       {stage === "result" && <div>RESULT (placeholder)</div>}
