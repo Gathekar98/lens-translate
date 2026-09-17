@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import Home from "./components/Home";
 import Capture from "./components/Capture";
+import Processing from "./components/Processing";
 
 type Stage = "home" | "capturing" | "processing" | "result";
 export type OutputMode = "speak" | "text";
@@ -11,6 +12,7 @@ function App() {
   const [outputMode, setOutputMode] = useState<OutputMode>("text");
   const [targetLanguage, setTargetLanguage] = useState<string>("en");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [recognizedText, setRecognizedText] = useState<string>("");
 
   return (
     <div className="app">
@@ -32,8 +34,24 @@ function App() {
           onCancel={()=> setStage("home")}
         />
       )}
-      {stage === "processing" && <div>PROCESSING (placeholder)</div>}
-      {stage === "result" && <div>RESULT (placeholder)</div>}
+      {stage === "processing" && capturedImage && ( 
+        <Processing 
+          imageData={capturedImage}
+          onTextFound={(text) => {
+            setRecognizedText(text);
+            setStage("result");
+          }}
+          onNoTextFound={()=> {
+            setRecognizedText("(no text found)");
+            setStage("result");
+          }}
+          onError={(msg)=>{
+            setRecognizedText(`Error: ${msg}`);
+            setStage("result");
+          }}
+        />
+      )}
+      {stage === "result" && <div>RESULT : {recognizedText} </div>}
     </div>
   );
 }
