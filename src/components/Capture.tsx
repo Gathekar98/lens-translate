@@ -1,5 +1,5 @@
 import { Camera } from "@capacitor/camera";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface CaptureProps {
     onCaptured: (ImageDataUrl: string) => void;
@@ -8,8 +8,10 @@ interface CaptureProps {
 
 export default function Capture({onCaptured, onCancel} : CaptureProps) {
     const [error, setError] = useState<string | null>(null);
-
+    const hasStarted = useRef(false);
     useEffect(() => {
+        if(hasStarted.current) return;
+        hasStarted.current = true;
         takePhoto();
     }, []);
 
@@ -31,7 +33,7 @@ export default function Capture({onCaptured, onCancel} : CaptureProps) {
         catch(err){
             setError("Camera was closed or permission was denied");
         }
-    }
+    };
 
     return(
         <div className="capture-screen">
@@ -39,7 +41,10 @@ export default function Capture({onCaptured, onCancel} : CaptureProps) {
             {error && 
                 <div className="capture-error">
                     <p>{error}</p>       
-                    <button onClick={takePhoto}>Try Again</button>
+                    <button onClick={()=> {
+                        hasStarted.current = true;
+                        takePhoto();
+                    }}>Try Again</button>
                     <button onClick={onCancel}>Back to Home</button>
                 </div>
             }

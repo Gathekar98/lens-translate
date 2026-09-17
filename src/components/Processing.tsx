@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createWorker } from "tesseract.js";
 
 interface ProcessingProps{
@@ -10,8 +10,11 @@ interface ProcessingProps{
 
 export default function Processing({imageData, onTextFound, onNoTextFound, onError,} : ProcessingProps) {
     const [statusMessage, setStatusMessage] = useState("Starting...");
+    const hasStarted = useRef(false);
 
     useEffect(()=>{
+        if(hasStarted.current) return;
+        hasStarted.current = true;
         runOCR();
     }, []);
 
