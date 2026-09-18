@@ -41,8 +41,8 @@ function App() {
             setRecognizedText(text);
             setStage("result");
           }}
-          onNoTextFound={()=> {
-            setRecognizedText("(no text found)");
+          onNothingFound={()=> {
+            setRecognizedText("Couldn't recognize any text or object. Try again with better lighting or a closer shot.");
             setStage("result");
           }}
           onError={(msg)=>{

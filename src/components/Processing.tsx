@@ -1,24 +1,44 @@
 import { useEffect, useRef, useState } from "react";
 import { createWorker } from "tesseract.js";
+import * as mobilenet from "@tensorflow-models/mobilenet";
+import "@tensorflow/tfjs";
+
+function loadImage(dataUrl: string) : Promise<HTMLImageElement>{
+    return new Promise((resolve, reject) =>{
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Failed to load image for classification."));
+        img.src = dataUrl;
+    });
+}
 
 interface ProcessingProps{
     imageData: string;
     onTextFound: (text: string) => void;
-    onNoTextFound: () => void;
+    onNothingFound: () => void;
     onError: (message: string) => void;
 }
 
-export default function Processing({imageData, onTextFound, onNoTextFound, onError,} : ProcessingProps) {
+export default function Processing({imageData, onTextFound, onNothingFound, onError,} : ProcessingProps) {
     const [statusMessage, setStatusMessage] = useState("Starting...");
     const hasStarted = useRef(false);
 
     useEffect(()=>{
         if(hasStarted.current) return;
         hasStarted.current = true;
-        runOCR();
+        runPipeline();
     }, []);
 
-    const runOCR = async () => {
+    const runPipeline = async () => {
+        const foundText = await runOCR();
+        if(foundText){
+            onTextFound(foundText);
+            return;
+        }
+        await runObjectRecognition();
+    };
+
+    const runOCR = async (): Promise<string | null> => {
         try{
             setStatusMessage("Loading text recognition engine...");
 
@@ -32,11 +52,7 @@ export default function Processing({imageData, onTextFound, onNoTextFound, onErr
                 },
             });
 
-           const { data } = await worker.recognize(
-            imageData,
-            {}, 
-            { blocks: true }
-            );
+           const { data } = await worker.recognize(imageData, {}, { blocks: true });
             await worker.terminate();
 
             type Word = { text: string; confidence: number };
@@ -55,23 +71,38 @@ export default function Processing({imageData, onTextFound, onNoTextFound, onErr
             const CONFIDENCE_THRESHOLD = 60;
 
             const reliableWords = allWords.filter(
-            (word) => word.confidence >= CONFIDENCE_THRESHOLD && word.text.trim().length > 1
+            (w) => w.confidence >= CONFIDENCE_THRESHOLD && w.text.trim().length > 1
             );
 
             const cleanedText = reliableWords.map((w) => w.text).join(" ").trim();
-
-            if (cleanedText.length >= 3) {
-                onTextFound(cleanedText);
-            } 
-            else 
-            {
-                onNoTextFound();
-            } 
+            return cleanedText.length >= 3 ? cleanedText : null;
         }catch(err){
             console.error("OCR failed: ",err);
-            onError("Something went wrong while reading the image");
+            return null;
         }
-    }
+    };
+
+    const runObjectRecognition = async () => {
+        try{
+            setStatusMessage("No text found - identifying object...");
+            const model = await mobilenet.load();
+            setStatusMessage("Analyzing image...");
+            const imgElement = await loadImage(imageData);
+            const predictions = await model.classify(imgElement);
+
+            if(predictions.length > 0 && predictions[0].probability >0.15) {
+                const label = predictions[0].className.split(",")[0].trim();
+                onTextFound(label);
+            }
+            else{
+                onNothingFound();
+            }
+        }
+        catch(err){
+            console.error("Object recognition failed:" , err);
+            onError("Couldn't identify anything in the image.");
+        }
+    };
 
     return(
         <div className="processing-screen">
