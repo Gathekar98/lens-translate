@@ -13,6 +13,7 @@ function App() {
   const [targetLanguage, setTargetLanguage] = useState<string>("en");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [recognizedText, setRecognizedText] = useState<string>("");
+  const [translatedText, setTranslatedText] = useState<string>("");
 
   return (
     <div className="app">
@@ -37,8 +38,10 @@ function App() {
       {stage === "processing" && capturedImage && ( 
         <Processing 
           imageData={capturedImage}
-          onTextFound={(text) => {
-            setRecognizedText(text);
+          targetLanguage={targetLanguage}
+          onTranslated={(original, translated) => {
+            setRecognizedText(original);
+            setTranslatedText(translated);
             setStage("result");
           }}
           onNothingFound={()=> {
@@ -51,7 +54,12 @@ function App() {
           }}
         />
       )}
-      {stage === "result" && <div>RESULT : {recognizedText} </div>}
+      {stage === "result" && (
+        <div>
+          <p>RESULT (original): {recognizedText}</p>
+          <p>RESULT (translated): {translatedText}</p>
+        </div>
+      )}
     </div>
   );
 }

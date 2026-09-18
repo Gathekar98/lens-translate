@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createWorker } from "tesseract.js";
 import * as mobilenet from "@tensorflow-models/mobilenet";
+import { translateText } from "../lib/translate";
 import "@tensorflow/tfjs";
 
 function loadImage(dataUrl: string) : Promise<HTMLImageElement>{
@@ -14,12 +15,13 @@ function loadImage(dataUrl: string) : Promise<HTMLImageElement>{
 
 interface ProcessingProps{
     imageData: string;
-    onTextFound: (text: string) => void;
+    targetLanguage: string;
+    onTranslated: (original: string, translated: string) => void;
     onNothingFound: () => void;
     onError: (message: string) => void;
 }
 
-export default function Processing({imageData, onTextFound, onNothingFound, onError,} : ProcessingProps) {
+export default function Processing({imageData, targetLanguage, onTranslated, onNothingFound, onError,} : ProcessingProps) {
     const [statusMessage, setStatusMessage] = useState("Starting...");
     const hasStarted = useRef(false);
 
@@ -31,11 +33,14 @@ export default function Processing({imageData, onTextFound, onNothingFound, onEr
 
     const runPipeline = async () => {
         const foundText = await runOCR();
-        if(foundText){
-            onTextFound(foundText);
+        const recognizedText = foundText ?? (await runObjectRecognitionAndGetLabel());
+
+        if (!recognizedText) {
+            onNothingFound();
             return;
         }
-        await runObjectRecognition();
+
+        await translateAndFinish(recognizedText);
     };
 
     const runOCR = async (): Promise<string | null> => {
@@ -82,25 +87,33 @@ export default function Processing({imageData, onTextFound, onNothingFound, onEr
         }
     };
 
-    const runObjectRecognition = async () => {
-        try{
-            setStatusMessage("No text found - identifying object...");
+    const runObjectRecognitionAndGetLabel = async (): Promise<string | null> => {
+        try {
+            setStatusMessage("No text found — identifying object...");
             const model = await mobilenet.load();
+
             setStatusMessage("Analyzing image...");
             const imgElement = await loadImage(imageData);
             const predictions = await model.classify(imgElement);
 
-            if(predictions.length > 0 && predictions[0].probability >0.15) {
-                const label = predictions[0].className.split(",")[0].trim();
-                onTextFound(label);
+            if (predictions.length > 0 && predictions[0].probability > 0.15) {
+            return predictions[0].className.split(",")[0].trim();
             }
-            else{
-                onNothingFound();
-            }
+            return null;
+        } catch (err) {
+            console.error("Object recognition failed:", err);
+            return null;
         }
-        catch(err){
-            console.error("Object recognition failed:" , err);
-            onError("Couldn't identify anything in the image.");
+    };
+
+    const translateAndFinish = async (recognizedText: string) => {
+        try {
+            setStatusMessage("Translating...");
+            const { translatedText } = await translateText(recognizedText, targetLanguage);
+            onTranslated(recognizedText, translatedText);
+        } catch (err) {
+            console.error("Translation failed:", err);
+            onError("Recognition worked, but translation failed. Please try again.");
         }
     };
 
