@@ -11,7 +11,7 @@ export type OutputMode = "speak" | "text";
 function App() {
   const [stage, setStage] = useState<Stage>("home");
   const [outputMode, setOutputMode] = useState<OutputMode>("text");
-  const [targetLanguage, setTargetLanguage] = useState<string>("en");
+  const [targetLanguage, setTargetLanguage] = useState<string>("es");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [recognizedText, setRecognizedText] = useState<string>("");
   const [translatedText, setTranslatedText] = useState<string>("");
