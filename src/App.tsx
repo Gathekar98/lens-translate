@@ -3,6 +3,7 @@ import "./App.css";
 import Home from "./components/Home";
 import Capture from "./components/Capture";
 import Processing from "./components/Processing";
+import Result from "./components/Result";
 
 type Stage = "home" | "capturing" | "processing" | "result";
 export type OutputMode = "speak" | "text";
@@ -55,10 +56,18 @@ function App() {
         />
       )}
       {stage === "result" && (
-        <div>
-          <p>RESULT (original): {recognizedText}</p>
-          <p>RESULT (translated): {translatedText}</p>
-        </div>
+        <Result 
+          originalText={recognizedText}
+          translatedText={translatedText}
+          outputMode={outputMode}
+          targetLanguage={targetLanguage}
+          onScanAgain={()=>{
+            setCapturedImage(null);
+            setRecognizedText("");
+            setTranslatedText("");
+            setStage("capturing");
+          }}
+        />
       )}
     </div>
   );
